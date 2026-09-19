@@ -93,12 +93,33 @@
     <b>📊 Сводный балл:</b> 10 критериев нормализуются 0–100 и взвешиваются. Профили: «Универсал», «Кодер» (код 40%), «Бюджет» (цена 30%), «Скорость» (30%). Источник: <b>aiiq.org API</b> — агрегатор ~40 бенчмарков, обновляется ежедневно.
   </div>
 
+  <section class="multi" id="multi">
+    <h2>🔬 6 независимых источников + консенсус</h2>
+    <p class="mini" id="multiUpdated">Загрузка…</p>
+    <div class="src-cards" id="srcCards"></div>
+    <div class="tabs" id="srcTabs"></div>
+    <div class="src-detail" id="srcDetail"></div>
+    <div class="table-wrap src-table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Модель</th><th>Компания</th><th>Показатель</th><th>Детали</th></tr></thead>
+        <tbody id="srcBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="top10" id="top10">
+    <h2>🏅 ТОП-10 по консенсусу — с плюсами и минусами</h2>
+    <p class="mini">Средневзвешенный перцентиль по всем источникам. Вес живых источников — 1.0, устаревших снимков — 0.5.</p>
+    <div class="top-list" id="topList"></div>
+  </section>
+
   <footer>
-    Данные: <a href="https://aiiq.org" target="_blank">aiiq.org</a> · Live-обновление каждую минуту<br>
+    Данные: <a href="https://aiiq.org" target="_blank">aiiq.org</a> · <a href="https://lmarena.ai" target="_blank">LMArena</a> · <a href="https://www.swebench.com" target="_blank">SWE-bench</a> · <a href="https://huggingface.co" target="_blank">Hugging Face</a> · <a href="https://livebench.ai" target="_blank">LiveBench</a> · <a href="https://aider.chat" target="_blank">Aider</a><br>
     Провайдерские ссылки — партнёрские.
   </footer>
 </div>
 <script src="data.js"></script>
 <script src="app.js"></script>
+<script src="ratings.js"></script>
 </body>
 </html>
