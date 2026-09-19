@@ -1,0 +1,5 @@
+# Служебные/локальные файлы — не публикуем
+.goal.json
+api-models.json
+scripts/
+*.log
