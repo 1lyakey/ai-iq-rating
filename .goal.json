@@ -1,8 +1,13 @@
 {
   "goal": "Аудит безопасности, проверка всех кнопок, финальная полировка",
-  "status": "active",
+  "status": "done",
   "step": 1,
   "max_steps": 20,
-  "history": [],
-  "updated": "2026-09-19T13:22:18.771Z"
+  "history": [
+    "шаг 1: XSS-защита (esc функция)",
+    "шаг 2: CSP headers, security headers",
+    "шаг 3: проверка всех элементов UI",
+    "запушено на GitHub"
+  ],
+  "updated": "2026-09-19T13:26:30.678Z"
 }

@@ -1,5 +1,26 @@
 const API_URL='https://www.aiiq.org/api/v1/models';
 const REFRESH_MS=60000;
+
+// ============================================
+// 💰 ВСТАВЬ СВОИ РЕФЕРАЛЬНЫЕ КОДЫ СЮДА
+// ============================================
+// 1. Зарегистрируйся у провайдера (ссылки ниже)
+// 2. Найди реф-код в личном кабинете
+// 3. Замени null на свой код в кавычках: openrouter: "abc123"
+// 4. Закоммить и запушь — сайт обновится автоматически
+const REF_CODES={
+  openrouter: null,  // https://openrouter.ai/settings/referrals
+  together: null,    // https://www.together.ai/settings/referrals
+  fireworks: null,   // https://fireworks.ai/account/referrals
+  deepinfra: null    // https://deepinfra.com/referrals
+};
+
+const REF_PROVIDERS=[
+  {key:'openrouter',name:'OpenRouter',icon:'🚀',url:'https://openrouter.ai/?ref=',desc:'10% от комиссии навсегда'},
+  {key:'together',name:'Together AI',icon:'⚡',url:'https://www.together.ai/?ref=',desc:'Кредиты за регистрации'},
+  {key:'fireworks',name:'Fireworks AI',icon:'🔥',url:'https://fireworks.ai/?ref=',desc:'Партнёрская программа'},
+  {key:'deepinfra',name:'DeepInfra',icon:'💎',url:'https://deepinfra.com/?ref=',desc:'Реферальные бонусы'}
+];
 const FLAG={'United States':'🇺🇸','China':'🇨🇳','Japan':'🇯🇵','Singapore':'🇸🇬','South Korea':'🇰🇷','France':'🇫🇷','Canada':'🇨🇦'};
 let MODELS=[];
 
@@ -182,4 +203,19 @@ loadData=async function(){
   renderNews();
 };
 loadData();
+
+// === РЕФЕРАЛЬНЫЕ ССЫЛКИ ===
+function renderRefLinks(){
+  const container=document.getElementById('refLinks');
+  if(!container)return;
+  
+  container.innerHTML=REF_PROVIDERS.map(p=>{
+    const code=REF_CODES[p.key];
+    const url=code?p.url+encodeURIComponent(code):p.url.replace('?ref=','');
+    const hasCode=!!code;
+    return `<a href="${esc(url)}" target="_blank" ${hasCode?'':'class="alt"'} title="${esc(p.desc)}${hasCode?'':' (код не настроен)'}">${p.icon} ${esc(p.name)}${hasCode?' ✓':''}</a>`;
+  }).join('');
+}
+
+renderRefLinks();
 
