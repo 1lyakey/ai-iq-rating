@@ -29,7 +29,7 @@ async function loadData(){
     const d=await r.json();
     const raw=d.models.filter(m=>m.iq!=null).sort((a,b)=>b.iq-a.iq).slice(0,100);
     MODELS=raw.map(m=>({
-      name:m.name, provider:m.provider, flag:FLAG[m.country]||'🏳️',
+      name:esc(m.name), provider:esc(m.provider), flag:FLAG[m.country]||'🏳️',
       iq:m.iq, dims:m.dimensions||{}, cost:(m.cost&&m.cost.effectivePer1M)||null,
       speed:(m.speed&&m.speed.medianTokensPerSecond)||null,
       ctx:m.contextWindow||null, os:m.openSource||false
@@ -71,7 +71,7 @@ function calcScores(){
 function rebuildCompanyFilter(){
   const cur=compSel.value;
   compSel.innerHTML='<option value="">Все компании</option>';
-  [...new Set(MODELS.map(m=>m.provider))].sort().forEach(c=>{
+  [...new Set(MODELS.map(m=>esc(m.provider)))].sort().forEach(c=>{
     const o=document.createElement('option');o.value=o.textContent=c;compSel.appendChild(o);
   });
   if([...compSel.options].some(o=>o.value===cur))compSel.value=cur;
@@ -79,11 +79,12 @@ function rebuildCompanyFilter(){
 
 function sClass(s){return s>=75?'s-hi':s>=55?'s-mid':'s-lo'}
 function fmt(v){return v==null?'—':v}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function render(){
   const q=searchEl.value.trim().toLowerCase();
   const comp=compSel.value;
-  let rows=MODELS.filter(m=>(!comp||m.provider===comp)&&(!q||m.name.toLowerCase().includes(q)||m.provider.toLowerCase().includes(q)));
+  let rows=MODELS.filter(m=>(!comp||esc(m.provider)===comp)&&(!q||esc(m.name).toLowerCase().includes(q)||esc(m.provider).toLowerCase().includes(q)));
   const s=sortSel.value;
   if(s==='iq')rows.sort((a,b)=>b.iq-a.iq);
   else if(s==='priceAsc')rows.sort((a,b)=>(a.cost??999)-(b.cost??999));
@@ -95,8 +96,8 @@ function render(){
   tbody.innerHTML=rows.map((m,i)=>{
     const rc=(s==='score'&&!q&&!comp)?(i===0?'r1':i===1?'r2':i===2?'r3':''):'';
     return `<tr><td class="rank ${rc}">${i+1}</td>
-      <td class="model" title="${m.name}">${m.name}</td>
-      <td class="company">${m.provider}</td>
+      <td class="model" title="${esc(m.name)}">${esc(m.name)}</td>
+      <td class="company">${esc(m.provider)}</td>
       <td class="score ${sClass(m.score)}">${m.score}</td>
       <td class="score">${m.iq}</td>
       <td class="mini">${fmt(m.dims['abstract-reasoning'])}</td>
@@ -159,10 +160,10 @@ function renderNews(){
   ];
   const apiNews=recent.map(m=>({
     date:m.releaseDate,
-    title:`${m.name} — релиз`,
-    desc:`${m.provider} · IQ ${m.iq}${m.os?' · Open Source':''} · ${m.ctx?Math.round(m.ctx/1000)+'K контекст':''}`,
+    title:`${esc(m.name)} — релиз`,
+    desc:`${esc(m.provider)} · IQ ${m.iq}${m.os?' · Open Source':''} · ${m.ctx?Math.round(m.ctx/1000)+'K контекст':''}`,
     badge:'new',
-    link:`https://www.aiiq.org/models/${m.name}/`
+    link:`https://www.aiiq.org/models/${esc(m.name)}/`
   }));
   const all=[...staticNews,...apiNews].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
   grid.innerHTML=all.map(n=>`
