@@ -41,6 +41,7 @@
     <button id="refEditBtn" class="ref-edit">⚙️ Настроить мои реф-ссылки</button>
     <div class="ref-panel" id="refPanel" hidden>
       <p class="mini">Вставь свои реф-коды — ссылки обновятся сразу и сохранятся в этом браузере. Коды берутся в личном кабинете провайдера (ссылки-подсказки в разделе «Партнёрки»).</p>
+      <p class="mini" style="color:var(--gold)">⚠️ Важно: здесь коды сохраняются только в <b>твоём</b> браузере. Чтобы реф-ссылки работали для <b>всех посетителей</b> сайта, код нужно зашить в файл <code>app.js</code> (объект <code>REF_CODES_DEFAULT</code>) — тогда он попадёт в деплой.</p>
       <div class="ref-fields" id="refFields"></div>
       <div class="ref-actions">
         <button id="refSave" class="ref-btn primary">💾 Сохранить</button>
