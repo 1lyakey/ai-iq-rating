@@ -2,24 +2,41 @@ const API_URL='https://www.aiiq.org/api/v1/models';
 const REFRESH_MS=60000;
 
 // ============================================
-// 💰 ВСТАВЬ СВОИ РЕФЕРАЛЬНЫЕ КОДЫ СЮДА
+// 💰 РЕФЕРАЛЬНЫЕ КОДЫ
 // ============================================
-// 1. Зарегистрируйся у провайдера (ссылки ниже)
-// 2. Найди реф-код в личном кабинете
-// 3. Замени null на свой код в кавычках: openrouter: "abc123"
-// 4. Закоммить и запушь — сайт обновится автоматически
-const REF_CODES={
-  openrouter: null,  // https://openrouter.ai/settings/referrals
-  together: null,    // https://www.together.ai/settings/referrals
-  fireworks: null,   // https://fireworks.ai/account/referrals
-  deepinfra: null    // https://deepinfra.com/referrals
+// Два способа задать свои коды:
+//  1) Прямо на сайте: кнопка «⚙️ Настроить мои реф-ссылки» → сохраняется в браузере (localStorage)
+//  2) Ссылкой: https://1lyakey.github.io/ai-iq-rating/?ref_openrouter=МОЙКОД&ref_together=КОД2
+//  3) В коде ниже (если хочешь зашить в файл навсегда)
+const REF_CODES_DEFAULT={
+  openrouter: null,
+  together: null,
+  fireworks: null,
+  deepinfra: null
 };
+const REF_CODES={...REF_CODES_DEFAULT};
+const REF_KEYS=['openrouter','together','fireworks','deepinfra'];
+
+// загрузка: URL-параметры → localStorage → дефолт
+(function loadRefCodes(){
+  try{
+    const q=new URLSearchParams(location.search);
+    REF_KEYS.forEach(k=>{
+      const v=q.get('ref_'+k);
+      if(v)REF_CODES[k]=v.slice(0,64);
+    });
+    const saved=JSON.parse(localStorage.getItem('refCodes')||'{}');
+    REF_KEYS.forEach(k=>{
+      if(!REF_CODES[k]&&saved[k])REF_CODES[k]=String(saved[k]).slice(0,64);
+    });
+  }catch(e){/* приватный режим — просто пропускаем */}
+})();
 
 const REF_PROVIDERS=[
-  {key:'openrouter',name:'OpenRouter',icon:'🚀',url:'https://openrouter.ai/?ref=',desc:'10% от комиссии навсегда'},
-  {key:'together',name:'Together AI',icon:'⚡',url:'https://www.together.ai/?ref=',desc:'Кредиты за регистрации'},
-  {key:'fireworks',name:'Fireworks AI',icon:'🔥',url:'https://fireworks.ai/?ref=',desc:'Партнёрская программа'},
-  {key:'deepinfra',name:'DeepInfra',icon:'💎',url:'https://deepinfra.com/?ref=',desc:'Реферальные бонусы'}
+  {key:'openrouter',name:'OpenRouter',icon:'🚀',url:'https://openrouter.ai/?ref=',desc:'10% от комиссии навсегда',where:'openrouter.ai/settings/referrals'},
+  {key:'together',name:'Together AI',icon:'⚡',url:'https://www.together.ai/?ref=',desc:'Кредиты за регистрации',where:'together.ai → Settings → Referrals'},
+  {key:'fireworks',name:'Fireworks AI',icon:'🔥',url:'https://fireworks.ai/?ref=',desc:'Партнёрская программа',where:'fireworks.ai → Account → Referrals'},
+  {key:'deepinfra',name:'DeepInfra',icon:'💎',url:'https://deepinfra.com/?ref=',desc:'Реферальные бонусы',where:'deepinfra.com → Referrals'}
 ];
 const FLAG={'United States':'🇺🇸','China':'🇨🇳','Japan':'🇯🇵','Singapore':'🇸🇬','South Korea':'🇰🇷','France':'🇫🇷','Canada':'🇨🇦'};
 let MODELS=[];
@@ -205,17 +222,87 @@ loadData=async function(){
 loadData();
 
 // === РЕФЕРАЛЬНЫЕ ССЫЛКИ ===
+function refUrl(p){
+  const code=REF_CODES[p.key];
+  return code?p.url+encodeURIComponent(code):p.url.replace('?ref=','');
+}
+
 function renderRefLinks(){
   const container=document.getElementById('refLinks');
   if(!container)return;
-  
   container.innerHTML=REF_PROVIDERS.map(p=>{
-    const code=REF_CODES[p.key];
-    const url=code?p.url+encodeURIComponent(code):p.url.replace('?ref=','');
-    const hasCode=!!code;
-    return `<a href="${esc(url)}" target="_blank" ${hasCode?'':'class="alt"'} title="${esc(p.desc)}${hasCode?'':' (код не настроен)'}">${p.icon} ${esc(p.name)}${hasCode?' ✓':''}</a>`;
+    const has=!!REF_CODES[p.key];
+    return `<a href="${esc(refUrl(p))}" target="_blank" ${has?'':'class="alt"'} title="${esc(p.desc)}${has?'':' (код не настроен — работает настройка ⚙️)'}">${p.icon} ${esc(p.name)}${has?' ✓':''}</a>`;
   }).join('');
 }
 
+function renderRefFields(){
+  const box=document.getElementById('refFields');
+  if(!box)return;
+  box.innerHTML=REF_PROVIDERS.map(p=>`
+    <div class="ref-field">
+      <label for="rc_${p.key}">${p.icon} ${esc(p.name)}</label>
+      <input id="rc_${p.key}" type="text" placeholder="твой реф-код" value="${esc(REF_CODES[p.key]||'')}" autocomplete="off">
+      <a href="${esc(p.url.replace('?ref=',''))}" target="_blank" rel="noopener">где взять код →</a>
+    </div>`).join('');
+}
+
+function setRefStatus(msg,ok){
+  const el=document.getElementById('refStatus');
+  if(!el)return;
+  el.textContent=msg||'';
+  el.style.color=ok===false?'var(--red)':'var(--green)';
+}
+
+function initRefUI(){
+  const btn=document.getElementById('refEditBtn');
+  const panel=document.getElementById('refPanel');
+  if(!btn||!panel)return;
+
+  renderRefFields();
+
+  btn.addEventListener('click',()=>{
+    panel.hidden=!panel.hidden;
+    btn.textContent=panel.hidden?'⚙️ Настроить мои реф-ссылки':'✖️ Свернуть настройки';
+    if(!panel.hidden)setRefStatus('');
+  });
+
+  document.getElementById('refSave').addEventListener('click',()=>{
+    REF_PROVIDERS.forEach(p=>{
+      const inp=document.getElementById('rc_'+p.key);
+      const v=(inp&&inp.value.trim())||'';
+      REF_CODES[p.key]=v?v.slice(0,64):null;
+    });
+    try{
+      const toSave={};
+      REF_KEYS.forEach(k=>{if(REF_CODES[k])toSave[k]=REF_CODES[k];});
+      localStorage.setItem('refCodes',JSON.stringify(toSave));
+      setRefStatus('✓ Сохранено! Ссылки обновлены.');
+    }catch(e){
+      setRefStatus('⚠️ Не удалось сохранить (приватный режим) — ссылки работают до перезагрузки.',false);
+    }
+    renderRefLinks();
+  });
+
+  document.getElementById('refReset').addEventListener('click',()=>{
+    REF_PROVIDERS.forEach(p=>{REF_CODES[p.key]=null;});
+    try{localStorage.removeItem('refCodes');}catch(e){}
+    renderRefFields();renderRefLinks();
+    setRefStatus('Сброшено — ссылки ведут на главные страницы провайдеров.');
+  });
+
+  document.getElementById('refCopy').addEventListener('click',async()=>{
+    const parts=REF_KEYS.filter(k=>REF_CODES[k]).map(k=>`ref_${k}=${encodeURIComponent(REF_CODES[k])}`);
+    const url=location.origin+location.pathname+(parts.length?'?'+parts.join('&'):'');
+    try{
+      await navigator.clipboard.writeText(url);
+      setRefStatus('✓ Ссылка скопирована — открой её, и коды подставятся автоматически.');
+    }catch(e){
+      setRefStatus('Скопируй вручную: '+url,false);
+    }
+  });
+}
+
 renderRefLinks();
+initRefUI();
 

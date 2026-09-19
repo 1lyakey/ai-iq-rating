@@ -38,7 +38,17 @@
     <h3>💰 Хочешь самому топовый AI? Провайдеры с рефералкой</h3>
     <p>Регистрируйся по ссылкам — получишь бонус, автору капнет комиссия. OpenRouter даёт <b>10% от комиссии навсегда</b>:</p>
     <div class="ref-links" id="refLinks"></div>
-    <p style="margin-top:10px;font-size:.72rem">👆 Ссылки настраиваются в файле <code>app.js</code> → объект <code>REF_CODES</code> (вставь свои реф-коды)</p>
+    <button id="refEditBtn" class="ref-edit">⚙️ Настроить мои реф-ссылки</button>
+    <div class="ref-panel" id="refPanel" hidden>
+      <p class="mini">Вставь свои реф-коды — ссылки обновятся сразу и сохранятся в этом браузере. Коды берутся в личном кабинете провайдера (ссылки-подсказки в разделе «Партнёрки»).</p>
+      <div class="ref-fields" id="refFields"></div>
+      <div class="ref-actions">
+        <button id="refSave" class="ref-btn primary">💾 Сохранить</button>
+        <button id="refReset" class="ref-btn">🗑️ Сбросить</button>
+        <button id="refCopy" class="ref-btn">🔗 Скопировать ссылку с кодами</button>
+      </div>
+      <p class="mini" id="refStatus"></p>
+    </div>
   </div>
 
   <div class="news" id="news">
