@@ -1,116 +1,147 @@
 const API_URL='https://www.aiiq.org/api/v1/models';
-const REFRESH_MS=60000; // обновление раз в минуту
-const FLAG={'United States':'🇺🇸','China':'🇨🇳','Japan':'🇯🇵','Singapore':'🇸🇬','South Korea':'🇰🇷','France':'🇫🇷','Canada':'🇨🇦','United Kingdom':'🇬🇧','Germany':'🇩🇪','Israel':'🇮🇱','India':'🇮🇳','Russia':'🇷🇺','United Arab Emirates':'🇦🇪'};
-let MODELS=[]; // name, provider, flag, iq, releaseDate
+const REFRESH_MS=60000;
+const FLAG={'United States':'🇺🇸','China':'🇨🇳','Japan':'🇯🇵','Singapore':'🇸🇬','South Korea':'🇰🇷','France':'🇫🇷','Canada':'🇨🇦'};
+let MODELS=[];
 
 const tbody=document.getElementById('tbody');
 const searchEl=document.getElementById('search');
 const compSel=document.getElementById('companyFilter');
 const sortSel=document.getElementById('sortSel');
-let chart=null,lastUpdate=null;
+const weightsEl=document.getElementById('weights');
+
+const PROFILES={
+  universal:{label:'⚖️ Универсал',w:{iq:.30,code:.15,math:.10,acad:.10,abs:.10,rel:.10,comp:.05,speed:.05,price:.03,ctx:.02}},
+  coder:{label:'💻 Кодер',w:{iq:.10,code:.40,math:.10,acad:.05,abs:.05,rel:.10,comp:.10,speed:.05,price:.03,ctx:.02}},
+  budget:{label:'💰 Бюджет',w:{iq:.15,code:.10,math:.05,acad:.05,abs:.05,rel:.10,comp:.05,speed:.10,price:.30,ctx:.05}},
+  speed:{label:'⚡ Скорость',w:{iq:.15,code:.10,math:.05,acad:.05,abs:.05,rel:.10,comp:.05,speed:.30,price:.10,ctx:.05}}
+};
+let profile='universal';
 
 function statusBadge(txt,ok){
   const b=document.getElementById('liveBadge');
-  if(b){b.textContent=txt;b.style.borderColor=ok?'#3ddc84':'#ff6b6b';}
+  b.textContent=txt;b.className='badge '+(ok?'live':'err');
 }
 
-async function loadData(silent){
+async function loadData(){
   try{
     const r=await fetch(API_URL,{cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const d=await r.json();
-    const top=d.models.filter(m=>m.iq!=null).sort((a,b)=>b.iq-a.iq).slice(0,100)
-      .map(m=>[m.name,m.provider,FLAG[m.country]||'🏳️',m.iq,m.releaseDate||'']);
-    if(!top.length)throw new Error('empty');
-    MODELS=top;lastUpdate=new Date(d.updatedAt||Date.now());
+    const raw=d.models.filter(m=>m.iq!=null).sort((a,b)=>b.iq-a.iq).slice(0,100);
+    MODELS=raw.map(m=>({
+      name:m.name, provider:m.provider, flag:FLAG[m.country]||'🏳️',
+      iq:m.iq, dims:m.dimensions||{}, cost:(m.cost&&m.cost.effectivePer1M)||null,
+      speed:(m.speed&&m.speed.medianTokensPerSecond)||null,
+      ctx:m.contextWindow||null, os:m.openSource||false
+    }));
+    calcScores();
     rebuildCompanyFilter();
-    statusBadge('🟢 Live · данные aiiq.org от '+lastUpdate.toLocaleString('ru-RU'),true);
+    statusBadge('🟢 Live · '+new Date(d.updatedAt||Date.now()).toLocaleString('ru-RU'),true);
     render();
-    if(!chart)buildChart();else updateChart();
   }catch(e){
-    statusBadge('🔴 Ошибка обновления ('+e.message+') — показаны последние данные',false);
-    if(!MODELS.length){
-      if(typeof MODELS_SNAPSHOT!=='undefined'&&MODELS_SNAPSHOT.length){MODELS=MODELS_SNAPSHOT;rebuildCompanyFilter();render();if(!chart)buildChart();}
-      else tbody.innerHTML='<tr><td colspan="7" style="padding:24px;text-align:center;color:#ff9d9d">Не удалось загрузить данные: '+e.message+'</td></tr>';
+    statusBadge('🔴 Ошибка: '+e.message,false);
+    if(!MODELS.length&&typeof MODELS_SNAPSHOT!=='undefined'){
+      MODELS=MODELS_SNAPSHOT.map(m=>({name:m[0],provider:m[1],flag:m[2],iq:m[3],dims:{},cost:null,speed:null,ctx:null,os:false}));
+      calcScores();rebuildCompanyFilter();render();
     }
   }
+}
+
+function norm(v,min,max,invert){
+  if(v==null||min==max)return 50;
+  let x=(v-min)/(max-min)*100;
+  return invert?100-x:x;
+}
+
+function calcScores(){
+  const iqs=MODELS.map(m=>m.iq);
+  const minI=Math.min(...iqs),maxI=Math.max(...iqs);
+  const prices=MODELS.map(m=>m.cost).filter(v=>v!=null);
+  const minP=prices.length?Math.min(...prices):0,maxP=prices.length?Math.max(...prices):1;
+  const speeds=MODELS.map(m=>m.speed).filter(v=>v!=null);
+  const minS=speeds.length?Math.min(...speeds):0,maxS=speeds.length?Math.max(...speeds):1;
+  const ctxs=MODELS.map(m=>m.ctx).filter(v=>v!=null);
+  const minC=ctxs.length?Math.min(...ctxs):0,maxC=ctxs.length?Math.max(...ctxs):1;
+  const P=PROFILES[profile].w;
+  MODELS.forEach(m=>{
+    m.score=Math.round(P.iq*norm(m.iq,minI,maxI)+P.code*norm(m.dims['programmatic-reasoning'],60,150)+P.math*norm(m.dims['mathematical-reasoning'],60,150)+P.acad*norm(m.dims['academic-reasoning'],60,150)+P.abs*norm(m.dims['abstract-reasoning'],60,150)+P.rel*norm(m.dims['reliability'],60,150)+P.comp*norm(m.dims['computer-use'],60,150)+P.speed*norm(m.speed,minS,maxS)+P.price*norm(m.cost,minP,maxP,true)+P.ctx*norm(m.ctx,minC,maxC));
+  });
 }
 
 function rebuildCompanyFilter(){
   const cur=compSel.value;
   compSel.innerHTML='<option value="">Все компании</option>';
-  [...new Set(MODELS.map(m=>m[1]))].sort().forEach(c=>{
+  [...new Set(MODELS.map(m=>m.provider))].sort().forEach(c=>{
     const o=document.createElement('option');o.value=o.textContent=c;compSel.appendChild(o);
   });
   if([...compSel.options].some(o=>o.value===cur))compSel.value=cur;
 }
 
-function iqClass(iq){return iq>=125?'hi':iq>=95?'mid':'lo';}
+function sClass(s){return s>=75?'s-hi':s>=55?'s-mid':'s-lo'}
+function fmt(v){return v==null?'—':v}
+
 function render(){
   const q=searchEl.value.trim().toLowerCase();
   const comp=compSel.value;
-  let rows=MODELS.filter(m=>(!comp||m[1]===comp)&&(!q||m[0].toLowerCase().includes(q)||m[1].toLowerCase().includes(q)));
+  let rows=MODELS.filter(m=>(!comp||m.provider===comp)&&(!q||m.name.toLowerCase().includes(q)||m.provider.toLowerCase().includes(q)));
   const s=sortSel.value;
-  if(s==='iq-desc')rows.sort((a,b)=>b[3]-a[3]);
-  else if(s==='iq-asc')rows.sort((a,b)=>a[3]-b[3]);
-  else if(s==='name')rows.sort((a,b)=>a[0].localeCompare(b[0]));
-  else if(s==='date')rows.sort((a,b)=>(b[4]||'').localeCompare(a[4]||''));
-  else rows.sort((a,b)=>a[1].localeCompare(b[1]));
-  const max=Math.max(...MODELS.map(m=>m[3]),1);
+  if(s==='iq')rows.sort((a,b)=>b.iq-a.iq);
+  else if(s==='priceAsc')rows.sort((a,b)=>(a.cost??999)-(b.cost??999));
+  else if(s==='speed')rows.sort((a,b)=>(b.speed??0)-(a.speed??0));
+  else if(s==='context')rows.sort((a,b)=>(b.ctx??0)-(a.ctx??0));
+  else if(s==='name')rows.sort((a,b)=>a.name.localeCompare(b.name));
+  else rows.sort((a,b)=>b.score-a.score);
+
   tbody.innerHTML=rows.map((m,i)=>{
-    const rc=(s==='iq-desc'&&!q&&!comp)?(i===0?'r1':i===1?'r2':i===2?'r3':''):'';
-    const w=Math.round(m[3]/max*100);
+    const rc=(s==='score'&&!q&&!comp)?(i===0?'r1':i===1?'r2':i===2?'r3':''):'';
     return `<tr><td class="rank ${rc}">${i+1}</td>
-      <td class="model">${m[0]}</td>
-      <td class="company">${m[1]}</td><td><span class="flag">${m[2]}</span></td>
-      <td class="company">${m[4]||'—'}</td>
-      <td class="iq ${iqClass(m[3])}">${m[3]}</td>
-      <td><span class="bar" style="width:${w}px"></span></td></tr>`;
+      <td class="model" title="${m.name}">${m.name}</td>
+      <td class="company">${m.provider}</td>
+      <td class="score ${sClass(m.score)}">${m.score}</td>
+      <td class="score">${m.iq}</td>
+      <td class="mini">${fmt(m.dims['abstract-reasoning'])}</td>
+      <td class="mini">${fmt(m.dims['mathematical-reasoning'])}</td>
+      <td class="mini">${fmt(m.dims['academic-reasoning'])}</td>
+      <td class="mini">${fmt(m.dims['programmatic-reasoning'])}</td>
+      <td class="mini">${fmt(m.dims['computer-use'])}</td>
+      <td class="mini">${fmt(m.dims['reliability'])}</td>
+      <td class="mini">${m.cost!=null?'$'+m.cost.toFixed(2):'—'}</td>
+      <td class="mini">${fmt(m.speed)}</td>
+      <td class="mini">${m.ctx?Math.round(m.ctx/1000)+'K':'—'}</td>
+      <td>${m.os?'<span class="tag os">OS</span>':''}</td></tr>`;
   }).join('');
-  const top=[...MODELS].sort((a,b)=>b[3]-a[3])[0];
-  document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="num">${rows.length}</div><div class="lbl">моделей показано</div></div>
-    <div class="stat"><div class="num">${MODELS.length}</div><div class="lbl">всего в рейтинге</div></div>
-    <div class="stat"><div class="num">${max}</div><div class="lbl">макс. IQ — ${top?top[0]:'—'}</div></div>
-    <div class="stat"><div class="num">${[...new Set(MODELS.map(m=>m[1]))].length}</div><div class="lbl">компаний</div></div>`;
+
+  if(rows.length){
+    const top=[...MODELS].sort((a,b)=>b.score-a.score)[0];
+    document.getElementById('heroName').textContent=top.name;
+    document.getElementById('heroSub').textContent=`${top.provider} · IQ ${top.iq} · $${top.cost?top.cost.toFixed(2):'—'}/1M · ${top.speed||'—'} т/с · ${top.ctx?Math.round(top.ctx/1000)+'K':'—'} контекст`;
+    document.getElementById('heroScore').textContent=top.score;
+    document.getElementById('heroDims').innerHTML=`
+      <div class="dim"><span>🧠 IQ</span><b>${top.iq}</b></div>
+      <div class="dim"><span>💻 Код</span><b>${fmt(top.dims['programmatic-reasoning'])}</b></div>
+      <div class="dim"><span>🔢 Математика</span><b>${fmt(top.dims['mathematical-reasoning'])}</b></div>
+      <div class="dim"><span>🎓 Академич.</span><b>${fmt(top.dims['academic-reasoning'])}</b></div>
+      <div class="dim"><span>💡 Абстрактн.</span><b>${fmt(top.dims['abstract-reasoning'])}</b></div>
+      <div class="dim"><span>🛡️ Надёжность</span><b>${fmt(top.dims['reliability'])}</b></div>`;
+  }
 }
+
+Object.entries(PROFILES).forEach(([k,p])=>{
+  const b=document.createElement('button');
+  b.className='wbtn'+(k===profile?' on':'');b.textContent=p.label;
+  b.onclick=()=>{profile=k;calcScores();render();document.querySelectorAll('.wbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');};
+  weightsEl.appendChild(b);
+});
+
 searchEl.addEventListener('input',render);
 compSel.addEventListener('change',render);
 sortSel.addEventListener('change',render);
 document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('click',()=>{
   const k=th.dataset.k;
-  if(k==='iq')sortSel.value='iq-desc';
-  else if(k==='name')sortSel.value='name';
-  else if(k==='company')sortSel.value='company';
-  else if(k==='date')sortSel.value='date';
+  sortSel.value=(k==='score'||k==='iq'||k==='name')?k:'score';
   render();
 }));
 
-function chartData(){
-  const top25=[...MODELS].sort((a,b)=>b[3]-a[3]).slice(0,25);
-  return{labels:top25.map(m=>m[0]),data:top25.map(m=>m[3]),
-    colors:top25.map((m,i)=>i<3?'rgba(255,209,102,.85)':`hsla(${230+i*3},70%,60%,.75)`)};
-}
-function buildChart(){
-  const c=chartData();
-  chart=new Chart(document.getElementById('chart'),{
-    type:'bar',
-    data:{labels:c.labels,datasets:[{data:c.data,backgroundColor:c.colors,borderRadius:6}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:t=>` IQ: ${t.raw}  (${t.label})`}}},
-      scales:{x:{min:0,max:150,grid:{color:'#243049'},ticks:{color:'#8b95a9'},
-        title:{display:true,text:'IQ (aiiq.org)',color:'#8b95a9'}},
-        y:{grid:{display:false},ticks:{color:'#e5e9f0',font:{size:11}}}}}
-  });
-}
-function updateChart(){
-  const c=chartData();
-  chart.data.labels=c.labels;
-  chart.data.datasets[0].data=c.data;
-  chart.data.datasets[0].backgroundColor=c.colors;
-  chart.update('none');
-}
-
 loadData();
-setInterval(()=>loadData(true),REFRESH_MS);
+setInterval(loadData,REFRESH_MS);
+
