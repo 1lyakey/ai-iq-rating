@@ -145,3 +145,40 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('c
 loadData();
 setInterval(loadData,REFRESH_MS);
 
+// === НОВОСТИ ===
+function renderNews(){
+  const grid=document.getElementById('newsGrid');
+  if(!grid)return;
+  const recent=[...MODELS].filter(m=>m.releaseDate).sort((a,b)=>b.releaseDate.localeCompare(a.releaseDate)).slice(0,5);
+  const staticNews=[
+    {date:'2026-09-19',title:'Cline Desktop — 4 модели бесплатно',desc:'Kimi K3, DeepSeek V4.1 Flash, Muse Spark 1.3 Contributor и GLM 5.3 Flash доступны без оплаты',badge:'free',link:'https://cline.bot'},
+    {date:'2026-09-18',title:'OpenRouter — расширен free-tier',desc:'Новые бесплатные модели с лимитом 50 запросов/день',badge:'free',link:'https://openrouter.ai'},
+    {date:'2026-09-15',title:'Gemini 3.5 Flash — бесплатный доступ',desc:'Google открыл бесплатный tier в AI Studio',badge:'free',link:'https://aistudio.google.com'},
+    {date:'2026-09-12',title:'DeepSeek V4.1 Flash — open weights',desc:'Веса опубликованы под Apache 2.0',badge:'new',link:'https://huggingface.co/deepseek-ai'},
+    {date:'2026-09-10',title:'Anthropic Fable 5.1 — новый SOTA',desc:'Fable 5.1 обогнал GPT-5.5 по IQ (137 vs 133)',badge:'new',link:'https://www.anthropic.com'}
+  ];
+  const apiNews=recent.map(m=>({
+    date:m.releaseDate,
+    title:`${m.name} — релиз`,
+    desc:`${m.provider} · IQ ${m.iq}${m.os?' · Open Source':''} · ${m.ctx?Math.round(m.ctx/1000)+'K контекст':''}`,
+    badge:'new',
+    link:`https://www.aiiq.org/models/${m.name}/`
+  }));
+  const all=[...staticNews,...apiNews].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  grid.innerHTML=all.map(n=>`
+    <div class="news-item">
+      <div class="date">${n.date}</div>
+      <div class="title">${n.title}${n.badge==='free'?'<span class="badge-free">FREE</span>':'<span class="badge-new">NEW</span>'}</div>
+      <div class="desc">${n.desc}</div>
+      ${n.link?`<a href="${n.link}" target="_blank" style="color:var(--accent);font-size:.72rem;margin-top:8px;display:inline-block">Подробнее →</a>`:''}
+    </div>
+  `).join('');
+}
+
+const origLoad=loadData;
+loadData=async function(){
+  await origLoad();
+  renderNews();
+};
+loadData();
+
