@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI IQ Рейтинг — Топ-100 моделей мира (2026)</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f1a; --bg2:#111827; --card:#151d2e; --border:#243049;
+    --text:#e5e9f0; --muted:#8b95a9; --accent:#6d8dff; --accent2:#9b6dff;
+    --gold:#ffd166; --silver:#c0c8d8; --bronze:#d8976a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#0b0f1a 0%,#0e1526 100%);color:var(--text);min-height:100vh}
+  .container{max-width:1200px;margin:0 auto;padding:24px 16px 64px}
+  header{text-align:center;padding:40px 0 24px}
+  header h1{font-size:clamp(1.6rem,4vw,2.6rem);background:linear-gradient(90deg,var(--accent),var(--accent2),#ff6dd8);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}
+  header p{color:var(--muted);margin-top:10px;font-size:.95rem}
+  .badge{display:inline-block;margin-top:12px;padding:5px 14px;border:1px solid var(--border);border-radius:999px;font-size:.8rem;color:var(--muted);background:var(--card)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:28px 0}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+  .stat .num{font-size:1.6rem;font-weight:800;color:var(--accent)}
+  .stat .lbl{font-size:.78rem;color:var(--muted);margin-top:4px}
+  .chart-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:24px 0}
+  .chart-box h2{font-size:1.05rem;margin-bottom:14px;color:var(--text)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0;align-items:center}
+  .controls input,.controls select{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 14px;font-size:.9rem;outline:none}
+  .controls input{flex:1;min-width:200px}
+  .controls input:focus,.controls select:focus{border-color:var(--accent)}
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:auto;max-height:70vh}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:760px}
+  thead th{position:sticky;top:0;background:#1a2440;color:var(--muted);text-transform:uppercase;font-size:.72rem;letter-spacing:.06em;padding:12px 14px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
+  thead th:hover{color:var(--accent)}
+  tbody td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
+  tbody tr:hover{background:#1b2540}
+  .rank{font-weight:700;color:var(--muted);width:52px}
+  .r1{color:var(--gold)}.r2{color:var(--silver)}.r3{color:var(--bronze)}
+  .model{font-weight:600}
+  .company{color:var(--muted)}
+  .flag{margin-right:6px}
+  .iq{font-weight:800;font-size:1rem}
+  .iq.hi{color:#7dffa8}.iq.mid{color:var(--gold)}.iq.lo{color:#ff9d9d}
+  .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));display:inline-block;vertical-align:middle;margin-left:10px;max-width:120px}
+  .est{font-size:.68rem;color:var(--muted);border:1px dashed var(--border);border-radius:6px;padding:1px 6px;margin-left:8px}
+  .note{background:#1a2440;border-left:3px solid var(--accent);border-radius:10px;padding:14px 18px;margin:24px 0;font-size:.85rem;color:var(--muted);line-height:1.6}
+  footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px;line-height:1.7}
+  footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🧠 AI IQ Рейтинг 2026</h1>
+    <p>Сравнение «коэффициента интеллекта» топ-100 AI-моделей со всего мира</p>
+    <span class="badge">Данные: aiiq.org API v1 · автообновление каждую минуту</span>
+    <span class="badge" id="liveBadge">⏳ Загрузка свежих данных…</span>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="chart-box">
+    <h2>📊 Топ-25 самых «умных» моделей</h2>
+    <canvas id="chart" height="420"></canvas>
+  </div>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="🔍 Поиск по названию модели или компании...">
+    <select id="companyFilter"><option value="">Все компании</option></select>
+    <select id="sortSel">
+      <option value="iq-desc">IQ: по убыванию</option>
+      <option value="iq-asc">IQ: по возрастанию</option>
+      <option value="date">Сначала новые</option>
+      <option value="name">По названию (А-Я)</option>
+      <option value="company">По компании</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th data-k="rank">#</th><th data-k="name">Модель</th><th data-k="company">Компания</th>
+        <th data-k="country">Страна</th><th data-k="date">Релиз</th><th data-k="iq">IQ ▲▼</th><th>Шкала</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>⚠️ О методологии:</b> оценки IQ взяты напрямую из API агрегатора <b>aiiq.org</b> (обновлено сегодня), который комбинирует ~40 публичных бенчмарков (ARC Prize, FrontierMath, LiveCodeBench, Terminal-Bench, OSWorld и др.) и конвертирует результат в шкалу человеческого IQ по 6 измерениям: абстрактное, математическое, академическое, программное мышление, работа с компьютером и надёжность. Это <b>оценка</b>, а не классический тест WAIS/Mensa. Важно: на приватных «офлайн» тестах с задачами, которых нет в обучающих данных (TrackingAI), баллы моделей падают на 20–40 пунктов.
+  </div>
+
+  <footer>
+    Источники: <a href="https://aiiq.org" target="_blank">aiiq.org</a> · <a href="https://trackingai.org" target="_blank">trackingai.org</a> · <a href="https://lmarena.ai" target="_blank">lmarena.ai</a><br>
+    IQ 130+ ≈ топ-2% людей (уровень Mensa) · Средний человеческий IQ = 100<br>
+    Сайт создан для ознакомления · 2026
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+
