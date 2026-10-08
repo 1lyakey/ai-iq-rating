@@ -1,5 +1,5 @@
-# Служебные/локальные файлы — не публикуем
+# локальные/служебные файлы
 .goal.json
-api-models.json
-scripts/
 *.log
+node_modules/
+.DS_Store
