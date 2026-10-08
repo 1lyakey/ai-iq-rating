@@ -1,125 +1,183 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://www.aiiq.org; img-src 'self' data:;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://www.aiiq.org; img-src 'self' data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
-<meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
-<title>🏆 Топ-100 нейросетей — сводный рейтинг (live)</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Рейтинг нейросетей под вашу задачу: IQ, код, агенты, цена, скорость. Настраиваемые веса, график цена↔качество, сравнение моделей и консенсус 6 источников.">
+<title>AI·Ранг — какая нейросеть лучшая для вашей задачи</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0c10'/%3E%3Cpath d='M8 23V9h4v14zm6 0V9h4.5c3 0 5 1.6 5 4.5S21.500 18 18.500 18H18v5z' fill='%23b6f24a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<script src="js/theme-init.js"></script>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>🏆 Топ-100 нейросетей — сводный рейтинг</h1>
-    <p>10 критериев: 6 измерений IQ + цена + скорость + контекст + open-source. Live-данные aiiq.org, обновление каждую минуту.</p>
-    <div class="badges">
-      <span class="badge" id="liveBadge">⏳ Загрузка…</span>
-      <span class="badge">aiiq.org API v1</span>
-    </div>
-  </header>
 
-  <div class="hero" id="hero">
-    <div>
-      <div class="crown">👑</div>
-      <h2 id="heroName">Загрузка…</h2>
-      <p class="sub" id="heroSub"></p>
-      <div class="score-big" id="heroScore">—</div>
-      <p class="sub">сводный балл из 100</p>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="logo" href="#top" aria-label="AI·Ранг — наверх"><span class="logo-mark">IQ</span><span>AI·Ранг</span></a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#board">Рейтинг</a>
+      <a href="#charts">График</a>
+      <a href="#consensus">Консенсус</a>
+      <a href="#method">Методика</a>
+      <a href="#try">Попробовать</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-btn" data-act="share" title="Скопировать ссылку на этот вид рейтинга" aria-label="Скопировать ссылку">🔗<span class="lbl"> Ссылка</span></button>
+      <button class="icon-btn" data-act="theme" title="Сменить тему" aria-label="Сменить тему">🌓</button>
     </div>
-    <div class="score-dims" id="heroDims"></div>
   </div>
+</header>
 
-  <div class="ref">
-    <h3>💰 Хочешь самому топовый AI? Провайдеры с рефералкой</h3>
-    <p>Регистрируйся по ссылкам — получишь бонус, автору капнет комиссия. OpenRouter даёт <b>10% от комиссии навсегда</b>:</p>
-    <div class="ref-links" id="refLinks"></div>
-    <button id="refEditBtn" class="ref-edit">⚙️ Настроить мои реф-ссылки</button>
-    <div class="ref-panel" id="refPanel" hidden>
-      <p class="mini">Вставь свои реф-коды — ссылки обновятся сразу и сохранятся в этом браузере. Коды берутся в личном кабинете провайдера (ссылки-подсказки в разделе «Партнёрки»).</p>
-      <p class="mini" style="color:var(--gold)">⚠️ Важно: здесь коды сохраняются только в <b>твоём</b> браузере. Чтобы реф-ссылки работали для <b>всех посетителей</b> сайта, код нужно зашить в файл <code>app.js</code> (объект <code>REF_CODES_DEFAULT</code>) — тогда он попадёт в деплой.</p>
-      <div class="ref-fields" id="refFields"></div>
-      <div class="ref-actions">
-        <button id="refSave" class="ref-btn primary">💾 Сохранить</button>
-        <button id="refReset" class="ref-btn">🗑️ Сбросить</button>
-        <button id="refCopy" class="ref-btn">🔗 Скопировать ссылку с кодами</button>
+<main id="top">
+  <section class="hero wrap">
+    <div class="hero-text">
+      <p class="eyebrow" id="status" role="status">Загружаю данные…</p>
+      <h1>Какая нейросеть <em>лучшая</em><br>именно для&nbsp;вас?</h1>
+      <p class="lead">Выберите задачу — рейтинг пересчитается. Баллы собираются из 11 критериев: IQ, код, агенты, цена, скорость, контекст. Веса можно настроить вручную.</p>
+      <div class="presets" id="presets" role="group" aria-label="Сценарий использования"></div>
+      <p class="preset-hint" id="presetHint"></p>
+    </div>
+    <ol class="podium" id="podium" aria-label="Лидеры по выбранному сценарию"></ol>
+  </section>
+
+  <div class="strip wrap" id="fresh" hidden></div>
+
+  <section class="wrap layout" id="board">
+    <aside class="side" id="side">
+      <details class="side-box" id="filtersBox" open>
+        <summary>Фильтры</summary>
+        <label class="field">
+          <span>Поиск</span>
+          <input id="search" type="search" placeholder="Модель или компания  ( / )" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="field">
+          <span>Компании <button class="link" data-act="clear-providers" id="clearProv" hidden>сбросить</button></span>
+          <div class="chips" id="providers"></div>
+        </div>
+        <label class="switch"><input type="checkbox" id="osOnly"><span>Только открытые веса</span></label>
+        <label class="field">
+          <span>Цена до <b id="priceOut">любая</b></span>
+          <input id="priceMax" type="range" min="0" max="9" step="1" value="9">
+        </label>
+      </details>
+      <details class="side-box" id="weightsBox">
+        <summary>Что для вас важно <span class="badge" id="customBadge" hidden>свои веса</span></summary>
+        <p class="mini">Двигайте ползунки — рейтинг пересчитывается мгновенно. 0 — критерий не учитывается.</p>
+        <div id="weights" class="weights"></div>
+        <button class="btn ghost small" data-act="reset-weights">↺ Сбросить к «Универсал»</button>
+      </details>
+    </aside>
+
+    <div class="main-col">
+      <div class="bar">
+        <p class="count" id="count" aria-live="polite"></p>
+        <div class="bar-right">
+          <label class="mini sel">Сортировка
+            <select id="sortSel" aria-label="Сортировка"></select>
+          </label>
+        </div>
       </div>
-      <p class="mini" id="refStatus"></p>
-    </div>
-  </div>
-
-  <div class="news" id="news">
-    <h3>📰 Свежие релизы и новости</h3>
-    <div class="news-grid" id="newsGrid"></div>
-  </div>
-
-  <div class="controls">
-    <input id="search" type="text" placeholder="🔍 Поиск модели или компании…">
-    <select id="companyFilter"><option value="">Все компании</option></select>
-    <select id="sortSel">
-      <option value="score">🏆 Сводный балл</option>
-      <option value="iq">🧠 IQ (aiiq)</option>
-      <option value="priceAsc">💰 Дешевле</option>
-      <option value="speed">⚡ Быстрее</option>
-      <option value="context">📏 Контекст</option>
-      <option value="name">А-Я</option>
-    </select>
-  </div>
-
-  <div class="weights" id="weights">
-    <span class="mini" style="align-self:center;margin-right:4px">Профиль:</span>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th>#</th><th data-k="name">Модель</th><th data-k="company">Компания</th>
-        <th data-k="score">🏆 Балл</th><th data-k="iq">🧠 IQ</th>
-        <th title="Абстрактное">Абстр</th><th title="Математика">Матем</th>
-        <th title="Академическое">Акад</th><th title="Код">Код</th>
-        <th title="Computer use">Comp</th><th title="Надёжность">Надёжн</th>
-        <th title="$/1M эффективная">💰 $/1M</th><th title="токенов/сек">⚡ т/с</th>
-        <th title="Контекст">📏 Конт</th><th title="Open source">OS</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-
-  <div class="note">
-    <b>📊 Сводный балл:</b> 10 критериев нормализуются 0–100 и взвешиваются. Профили: «Универсал», «Кодер» (код 40%), «Бюджет» (цена 30%), «Скорость» (30%). Источник: <b>aiiq.org API</b> — агрегатор ~40 бенчмарков, обновляется ежедневно.
-  </div>
-
-  <section class="multi" id="multi">
-    <h2>🔬 6 независимых источников + консенсус</h2>
-    <p class="mini" id="multiUpdated">Загрузка…</p>
-    <div class="src-cards" id="srcCards"></div>
-    <div class="tabs" id="srcTabs"></div>
-    <div class="src-detail" id="srcDetail"></div>
-    <div class="table-wrap src-table-wrap">
-      <table>
-        <thead><tr><th>#</th><th>Модель</th><th>Компания</th><th>Показатель</th><th>Детали</th></tr></thead>
-        <tbody id="srcBody"></tbody>
-      </table>
+      <div class="table-wrap" id="tableWrap">
+        <table class="rank-table" id="table">
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="more"><button class="btn" id="moreBtn" data-act="more" hidden>Показать ещё</button></div>
     </div>
   </section>
 
-  <section class="top10" id="top10">
-    <h2>🏅 ТОП-10 по консенсусу — с плюсами и минусами</h2>
-    <p class="mini">Средневзвешенный перцентиль по всем источникам. Вес живых источников — 1.0, устаревших снимков — 0.5.</p>
-    <div class="top-list" id="topList"></div>
+  <section class="wrap sect" id="charts">
+    <div class="sect-head">
+      <h2>Цена ↔ качество</h2>
+      <p class="mini">Каждая точка — модель. <b>Линия</b> — граница лучших вариантов: правее/ниже неё выбирать нечего, там всегда есть модель лучше и не дороже. Клик по точке открывает карточку.</p>
+    </div>
+    <div class="chart-ctl">
+      <div class="seg" id="segX" role="group" aria-label="Ось X"></div>
+      <div class="seg" id="segY" role="group" aria-label="Ось Y"></div>
+    </div>
+    <div class="chart-box">
+      <div id="chart"></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="legend" id="legend"></div>
   </section>
 
-  <footer>
-    Данные: <a href="https://aiiq.org" target="_blank">aiiq.org</a> · <a href="https://lmarena.ai" target="_blank">LMArena</a> · <a href="https://www.swebench.com" target="_blank">SWE-bench</a> · <a href="https://huggingface.co" target="_blank">Hugging Face</a> · <a href="https://livebench.ai" target="_blank">LiveBench</a> · <a href="https://aider.chat" target="_blank">Aider</a><br>
-    Провайдерские ссылки — партнёрские.
-  </footer>
+  <section class="wrap sect" id="consensus">
+    <div class="sect-head">
+      <h2>Консенсус независимых источников</h2>
+      <p class="mini" id="consNote">Загрузка…</p>
+    </div>
+    <div class="tabs" id="consTabs" role="tablist" aria-label="Источники"></div>
+    <div id="consBody"></div>
+  </section>
+
+  <section class="wrap sect" id="method">
+    <div class="sect-head"><h2>Как считается рейтинг</h2></div>
+    <div class="method-grid">
+      <article class="card">
+        <h3>1 · Критерии</h3>
+        <p>Восемь измерений IQ с aiiq.org (общий, код, агенты, математика, наука, абстракция, надёжность, офисная работа) плюс три практических: цена, скорость, длина контекста.</p>
+      </article>
+      <article class="card">
+        <h3>2 · Нормализация</h3>
+        <p>Измерения IQ переводятся в 0–100 линейно (от 5-го перцентиля до максимума). Цена, скорость и контекст — по перцентилю, потому что у них огромные выбросы ($0,06 против $88).</p>
+      </article>
+      <article class="card">
+        <h3>3 · Веса</h3>
+        <p>Сводный балл — взвешенное среднее. Веса задаёт сценарий или ваши ползунки. Если данных по критерию нет, модель получает пессимистичные 30 из 100 и значок «≈»: неизвестное — не плюс.</p>
+      </article>
+      <article class="card">
+        <h3>4 · Консенсус</h3>
+        <p>Средний перцентиль позиции в 6 источниках; живые весят 1,0, устаревшие снимки — 0,5. В список попадают только модели, подтверждённые минимум двумя источниками.</p>
+      </article>
+    </div>
+    <p class="mini caveat">⚠️ Это сводка чужих замеров, а не собственные тесты. Бенчмарки можно «подгонять», а у разных источников разная методика (риски описаны на вкладках выше). Для важного решения проверьте модель на своих задачах.</p>
+  </section>
+
+  <section class="wrap sect" id="try">
+    <div class="sect-head">
+      <h2>Где попробовать</h2>
+      <p class="mini">Агрегаторы с доступом к десяткам моделей через один ключ. <b>Ссылки партнёрские</b>: если вы зарегистрируетесь по ним, автор сайта может получить бонус — для вас цена не меняется.</p>
+    </div>
+    <div class="partners" id="partners"></div>
+    <details class="side-box owner" id="refBox">
+      <summary>⚙️ Мои реф-коды (для владельца сайта)</summary>
+      <p class="mini">Коды сохраняются только в вашем браузере. Чтобы ссылки работали у <b>всех</b> посетителей, впишите код в <code>js/config.js</code> → <code>REF_DEFAULTS</code> и закоммитьте.</p>
+      <div class="ref-fields" id="refFields"></div>
+      <div class="row">
+        <button class="btn small primary" data-act="ref-save">Сохранить</button>
+        <button class="btn small" data-act="ref-reset">Сбросить</button>
+        <button class="btn small" data-act="ref-copy">Скопировать ссылку с кодами</button>
+      </div>
+      <p class="mini" id="refStatus" role="status"></p>
+    </details>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Данные: <a href="https://aiiq.org" target="_blank" rel="noopener noreferrer">aiiq.org</a> · <a href="https://arena.ai/leaderboard/text" target="_blank" rel="noopener noreferrer">LMArena</a> · <a href="https://www.swebench.com" target="_blank" rel="noopener noreferrer">SWE-bench</a> · <a href="https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard" target="_blank" rel="noopener noreferrer">Hugging Face</a> · <a href="https://livebench.ai" target="_blank" rel="noopener noreferrer">LiveBench</a> · <a href="https://aider.chat/docs/leaderboards/" target="_blank" rel="noopener noreferrer">Aider</a></p>
+    <p class="mini">Данные aiiq запрашиваются при открытии страницы; остальные источники обновляет бот каждые 6 часов. <span id="footMeta"></span></p>
+  </div>
+</footer>
+
+<div class="cmpbar" id="cmpbar" hidden>
+  <div class="wrap cmpbar-in">
+    <div class="cmp-chips" id="cmpChips"></div>
+    <button class="btn primary" data-act="open-compare" id="cmpGo">Сравнить</button>
+    <button class="btn ghost" data-act="cmp-clear">Очистить</button>
+  </div>
 </div>
-<script src="data.js"></script>
-<script src="app.js"></script>
-<script src="ratings.js"></script>
+
+<dialog id="detail" class="sheet" aria-label="Карточка модели"></dialog>
+<dialog id="compare" class="modal" aria-label="Сравнение моделей"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<noscript><p class="wrap noscript">Для работы рейтинга нужен JavaScript.</p></noscript>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
